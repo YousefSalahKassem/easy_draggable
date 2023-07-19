@@ -1,7 +1,7 @@
 name: easy_draggable
 description: Flutter Package for draggable widget.
 version: 0.0.1
-homepage:
+homepage: https://github.com/YousefSalahKassem/easy_draggable
 
 environment:
   sdk: '>=3.0.5 <4.0.0'
