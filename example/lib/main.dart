@@ -44,8 +44,8 @@ class _MyHomePageState extends State<MyHomePage> {
           padding: const EdgeInsets.all(16),
           floatingBuilder: (context, constraints) {
             return Container(
-              width: constraints.maxWidth,
-              height: constraints.maxHeight,
+              width: 100,
+              height: 100,
               color: Colors.blue,
               child: const Center(
                 child: Text(
