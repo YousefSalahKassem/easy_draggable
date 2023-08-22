@@ -42,18 +42,19 @@ EasyDraggableWidget(
 
 The `EasyDraggableWidget` constructor accepts the following parameters:
 
-| Parameter        | Type                   | Description                                                                                          | Default        |
-|------------------|------------------------|------------------------------------------------------------------------------------------------------|----------------|
-| padding          | EdgeInsetsGeometry     | The padding around the widget.                                                                       | EdgeInsets.zero|
-| floatingBuilder  | LayoutWidgetBuilder    | A builder function that returns the content of the floating widget.                                   | -              |
-| top              | double?                | The initial distance from the top of the screen.                                                     | -              |
-| left             | double?                | The initial distance from the left of the screen.                                                    | -              |
-| bottom           | double?                | The initial distance from the bottom of the screen.                                                  | -              |
-| right            | double?                | The initial distance from the right of the screen.                                                   | -              |
-| speed            | double?                | The speed factor for the widget movement when released.                                              | null           |
-| isDraggable      | bool                   | Determines whether the widget is draggable or not.                                                   | true           |
-| hasBounce        | bool                   | Determines whether the widget should bounce when it touches the screen borders.                     | false          |
-| autoAlign        | bool                   | Determines whether the widget should automatically align to the left or right side of the screen.   | false          |
+| Parameter           | Type                   | Description                                                                                       | Default         |
+|---------------------|------------------------|---------------------------------------------------------------------------------------------------|-----------------|
+| padding             | EdgeInsetsGeometry     | The padding around the widget.                                                                    | EdgeInsets.zero |
+| floatingBuilder     | LayoutWidgetBuilder    | A builder function that returns the content of the floating widget.                               | -               |
+| top                 | double?                | The initial distance from the top of the screen.                                                  | -               |
+| left                | double?                | The initial distance from the left of the screen.                                                 | -               |
+| bottom              | double?                | The initial distance from the bottom of the screen.                                               | -               |
+| right               | double?                | The initial distance from the right of the screen.                                                | -               |
+| speed               | double?                | The speed factor for the widget movement when released.                                           | null            |
+| isDraggable         | bool                   | Determines whether the widget is draggable or not.                                                | true            |
+| hasBounce           | bool                   | Determines whether the widget should bounce when it touches the screen borders.                   | false           |
+| autoAlign           | bool                   | Determines whether the widget should automatically align to the left or right side of the screen. | false           |
+| constrainToWindow   | bool                   | Determines whether the widget should constraint the floating widget to the borders of the screen. | true            |
 
 **Note**: You only need to specify either `left` or `right`, and either `top` or `bottom` for the initial state of the widget. Providing both `left` and `right`, or both `top` and `bottom`, is not necessary.
 
