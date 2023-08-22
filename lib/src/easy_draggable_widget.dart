@@ -16,6 +16,7 @@ class EasyDraggableWidget extends StatefulWidget {
     this.isDraggable = true,
     this.hasBounce = false,
     this.autoAlign = false,
+    this.constrainToWindow = false,
   })  : assert((bottom == null && top == null) ||
             (bottom == null && top != null) ||
             (bottom != null && top == null)),
@@ -35,6 +36,7 @@ class EasyDraggableWidget extends StatefulWidget {
   final bool isDraggable;
   final bool hasBounce;
   final bool autoAlign;
+  final bool constrainToWindow;
 
   @override
   State<EasyDraggableWidget> createState() => _EasyDraggableWidgetState();
@@ -43,6 +45,8 @@ class EasyDraggableWidget extends StatefulWidget {
 class _EasyDraggableWidgetState extends State<EasyDraggableWidget>
     with SingleTickerProviderStateMixin {
   final containerKey2 = GlobalKey();
+  Size? windowSize;
+  Size? floatingSize;
 
   /// distance from top and left initial value
   double? top, left;
@@ -79,9 +83,9 @@ class _EasyDraggableWidgetState extends State<EasyDraggableWidget>
   Size? get floatingHeadSize {
     final box2 = containerKey2.currentContext?.findRenderObject();
     if (box2 is RenderBox && box2.hasSize) {
-      return box2.size;
+      floatingSize = box2.size;
     }
-    return null;
+    return floatingSize;
   }
 
   @override
@@ -124,25 +128,32 @@ class _EasyDraggableWidgetState extends State<EasyDraggableWidget>
           child: LayoutBuilder(
             builder: (context, constraints) {
               final size = constraints.biggest;
+              windowSize = size;
               final height = size.height;
               final width = size.width;
 
               double getTop() {
-                return this.top ??
+                var top = this.top ??
                     widget._top ??
                     widget.bottom.let((bottom) {
                       return height - bottom - (floatingHeadSize?.height ?? 0);
-                    }) ??
-                    -1;
+                    });
+                if (widget.constrainToWindow && top != null) {
+                  top = top.clamp(0, height - (this.floatingSize?.height ?? 0)) as double;
+                }
+                return top ?? -1;
               }
 
               double getLeft() {
-                return this.left ??
+                var left = this.left ??
                     widget._left ??
                     widget.right.let((right) {
                       return width - right - (floatingHeadSize?.width ?? 0);
-                    }) ??
-                    -1;
+                    });
+                if (widget.constrainToWindow && left != null) {
+                  left = left.clamp(0, width - (this.floatingSize?.width ?? 0)) as double;
+                }
+                return left ?? -1;
               }
 
               final top = getTop();
@@ -163,6 +174,7 @@ class _EasyDraggableWidgetState extends State<EasyDraggableWidget>
                 child: SizedBox.fromSize(
                   size: size,
                   child: Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       AnimatedPositioned(
                         top: top == -1 ? null : top,
@@ -289,6 +301,39 @@ class _EasyDraggableWidgetState extends State<EasyDraggableWidget>
   void didUpdateWidget(EasyDraggableWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     isDragEnable = widget.isDraggable;
+    final hChange =
+        oldWidget._left != widget._left || oldWidget.right != widget.right;
+    final vChange =
+        oldWidget._top != widget._top || oldWidget.bottom != widget.bottom;
+    if (hChange || vChange) {
+      safeSetState(() {
+        final floatingSize = this.floatingSize;
+        final windowSize = this.windowSize;
+        if (floatingSize != null && windowSize != null) {
+          if (oldWidget._top != widget._top) {
+            top = widget._top ?? top;
+          }
+          if (oldWidget.bottom != widget.bottom) {
+            top = widget.bottom.let((bottom) {
+                  return windowSize.height - bottom - floatingSize.height;
+                }) ??
+                top;
+          }
+          if (oldWidget._left != widget._left) {
+            left = widget._left ?? left;
+          }
+          if (oldWidget.right != widget.right) {
+            left = widget.right.let((right) {
+                  return windowSize.width - right - floatingSize.width;
+                }) ??
+                left;
+          }
+        } else {
+          if (vChange) top = -1;
+          if (hChange) left = -1;
+        }
+      });
+    }
   }
 
   /// get the y axis value or top value with screen size
