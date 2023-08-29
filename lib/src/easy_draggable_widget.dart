@@ -44,12 +44,15 @@ class EasyDraggableWidget extends StatefulWidget {
 
 class _EasyDraggableWidgetState extends State<EasyDraggableWidget>
     with SingleTickerProviderStateMixin {
+  final containerKey = GlobalKey();
   final containerKey2 = GlobalKey();
   Size? windowSize;
   Size? floatingSize;
 
   /// distance from top and left initial value
   double? top, left;
+
+  Offset? tapOffset;
 
   /// is the widget tabbed bool value
   bool isTabbed = false;
@@ -86,6 +89,14 @@ class _EasyDraggableWidgetState extends State<EasyDraggableWidget>
       floatingSize = box2.size;
     }
     return floatingSize;
+  }
+
+  Offset _globalToLocal(Offset offset) {
+    final box = containerKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null) {
+      return box.globalToLocal(offset);
+    }
+    return offset;
   }
 
   @override
@@ -174,6 +185,7 @@ class _EasyDraggableWidgetState extends State<EasyDraggableWidget>
                 child: SizedBox.fromSize(
                   size: size,
                   child: Stack(
+                    key: containerKey,
                     clipBehavior: Clip.none,
                     children: [
                       AnimatedPositioned(
@@ -192,97 +204,102 @@ class _EasyDraggableWidgetState extends State<EasyDraggableWidget>
                                     left <= 1)
                             ? Curves.bounceOut
                             : Curves.ease,
-                        child: GestureDetector(
-                          /// tabbing on widget makes the isTabbed true.
-                          /// it is because the widget will move only when we are touch it and drag to to somewhere else in the screen
-                          onTap: () {
-                            setState(() {
-                              isTabbed = true;
-                            });
+                        child: Listener(
+                          behavior: HitTestBehavior.translucent,
+                          onPointerDown: (value) {
+                            tapOffset = value.localPosition;
                           },
+                          child: GestureDetector(
+                            /// tabbing on widget makes the isTabbed true.
+                            /// it is because the widget will move only when we are touch it and drag to to somewhere else in the screen
+                            onTap: () {
+                              setState(() {
+                                isTabbed = true;
+                              });
+                            },
 
-                          /// also in the case of long press
-                          onLongPress: () {
-                            setState(() {
-                              isTabbed = true;
-                            });
-                          },
+                            /// also in the case of long press
+                            onLongPress: () {
+                              setState(() {
+                                isTabbed = true;
+                              });
+                            },
 
-                          /// also in the case when a user start to drag the widget
-                          onPanStart: (value) {
-                            setState(() {
-                              isTabbed = true;
-                              isDragging = true;
-                            });
-                          },
+                            /// also in the case when a user start to drag the widget
+                            onPanStart: (value) {
+                              setState(() {
+                                isTabbed = true;
+                                isDragging = true;
+                              });
+                            },
 
-                          /// updating top and left variable
-                          onPanUpdate: (value) {
-                            setState(() {
-                              if (isTabbed && isDragEnable) {
-                                isColliding = hasCollision(
-                                  containerKey1,
-                                  containerKey2,
-                                );
-                                final position = value.globalPosition;
-                                this.top = _getDy(
-                                  position.dy - floatingWidgetHeight,
-                                  height,
-                                  floatingWidgetHeight,
-                                );
-                                this.left = _getDx(
-                                  position.dx - floatingWidgetHeight,
-                                  width,
-                                  floatingWidgetWidth,
-                                );
-                              }
-                            });
-                          },
+                            /// updating top and left variable
+                            onPanUpdate: (value) {
+                              setState(() {
+                                if (isTabbed && isDragEnable) {
+                                  isColliding = hasCollision(
+                                    containerKey1,
+                                    containerKey2,
+                                  );
+                                  final offset = tapOffset ?? Offset.zero;
+                                  final position = value.globalPosition - offset;
+                                  final localOffset = _globalToLocal(position);
+                                  this.top = _getDy(
+                                    localOffset.dy,
+                                    height,
+                                    floatingWidgetHeight,
+                                  );
+                                  this.left = _getDx(
+                                    localOffset.dx,
+                                    width,
+                                    floatingWidgetWidth,
+                                  );
+                                }
+                              });
+                            },
 
-                          /// give a sliding animation
-                          onPanEnd: (value) {
-                            final velocity = value.velocity.pixelsPerSecond;
-                            setState(() {
-                              if (isTabbed && isDragEnable) {
-                                isDragging = false;
-                                this.left = _getDx(
-                                  left + velocity.dx / (widget.speed ?? 50.0),
-                                  width,
-                                  floatingWidgetWidth,
-                                );
-                                this.top = _getDy(
-                                  top + velocity.dy / (widget.speed ?? 50.0),
-                                  height,
-                                  floatingWidgetHeight,
-                                );
-                              }
-                            });
+                            /// give a sliding animation
+                            onPanEnd: (value) {
+                              final velocity = value.velocity.pixelsPerSecond;
+                              setState(() {
+                                if (isTabbed && isDragEnable) {
+                                  isDragging = false;
+                                  this.left = _getDx(
+                                    left + velocity.dx / (widget.speed ?? 50.0),
+                                    width,
+                                    floatingWidgetWidth,
+                                  );
+                                  this.top = _getDy(
+                                    top + velocity.dy / (widget.speed ?? 50.0),
+                                    height,
+                                    floatingWidgetHeight,
+                                  );
+                                  tapOffset = null;
+                                }
 
-                            /// activates only if auto align is set to true
-                            /// the widget will automagically align to left or right of the screen now
-                            /// after the user release the widget
-                            ///  if the widget is on the left screen side then
-                            ///  left = width - widget.floatingWidgetWidth;
-                            ///  if the widget on the right side then
-                            ///  left = 0
-                            if (widget.autoAlign) {
-                              if (left >= width / 2) {
-                                setState(() {
-                                  this.left = width - floatingWidgetWidth;
-                                });
-                              } else {
-                                setState(() {
-                                  this.left = 0;
-                                });
-                              }
-                            }
-                          },
+                                /// activates only if auto align is set to true
+                                /// the widget will automagically align to left or right of the screen now
+                                /// after the user release the widget
+                                ///  if the widget is on the left screen side then
+                                ///  left = width - widget.floatingWidgetWidth;
+                                ///  if the widget on the right side then
+                                ///  left = 0
+                                if (widget.autoAlign) {
+                                  if (left >= width / 2) {
+                                    this.left = width - floatingWidgetWidth;
+                                  } else {
+                                    this.left = 0;
+                                  }
+                                }
+                              });
+                            },
 
-                          /// the floating widget with size
-                          child: SizedBox.fromSize(
-                            key: containerKey2,
-                            size: floatingSize,
-                            child: widget.floatingBuilder(context, constraints),
+                            /// the floating widget with size
+                            child: SizedBox.fromSize(
+                              key: containerKey2,
+                              size: floatingSize,
+                              child: widget.floatingBuilder(context, constraints),
+                            ),
                           ),
                         ),
                       ),
